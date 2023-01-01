@@ -1,0 +1,10 @@
+instance/
+__pycache__
+.pytest_cache/
+venv/
+.coverage
+.env
+*.docx
+*.csv
+todo.txt
+api/models/cities.py
