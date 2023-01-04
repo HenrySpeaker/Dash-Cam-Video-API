@@ -4,6 +4,7 @@ from .. import video_ns
 from flask_restx import Resource, fields, reqparse, inputs
 from .. import db, api
 from ..utils.url import verify_youtube_url
+from ..utils.apikey import require_api_key
 
 
 get_parser = reqparse.RequestParser()
@@ -90,6 +91,8 @@ class VideoList(Resource):
 
 @video_ns.route("/<int:id>")
 class Videos(Resource):
+    method_decorators = [require_api_key]
+
     @video_ns.marshal_with(video_model)
     def get(self, id):
         """

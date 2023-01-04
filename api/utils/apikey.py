@@ -2,6 +2,7 @@ from ..models.users import User
 import functools
 from werkzeug.security import check_password_hash
 from flask import request
+from .. import db
 
 
 def require_api_key(func):
@@ -11,14 +12,14 @@ def require_api_key(func):
             return func(*args, **kwargs)
         elif request.method != "GET" and request.json:
             possible_key = request.json.get("api_key")
-            username = request.json.get("username")
-            possible_user = User.get_from_username(username)
-            print(possible_key)
+            if not possible_key:
+                return {"message": "No API key provided"}, 400
+            users = db.session.query(User)
+            for user in users:
+                if user.key == possible_key:
+                    return func(*args, **kwargs)
 
-            if possible_user and check_password_hash(possible_user.hashed_key, possible_key):
-                return func(*args, **kwargs)
-            else:
-                return {"message": "Invalid API key provided"}, 403
+            return {"message": "Invalid API key provided"}, 403
 
         else:
             return {"message": "No API key provided"}, 400

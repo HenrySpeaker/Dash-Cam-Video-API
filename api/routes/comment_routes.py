@@ -4,6 +4,7 @@ from ..models.users import User
 from .. import comment_ns
 from flask_restx import Resource, reqparse, fields
 from .. import db, api
+from ..utils.apikey import require_api_key
 
 
 get_parser = reqparse.RequestParser()
@@ -69,6 +70,8 @@ class CommentList(Resource):
 
 @comment_ns.route("/<int:id>")
 class Comments(Resource):
+    method_decorators = [require_api_key]
+
     @comment_ns.marshal_with(comment_model)
     def get(self, id):
         """

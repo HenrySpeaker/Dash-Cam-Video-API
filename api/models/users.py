@@ -10,12 +10,11 @@ class User(db.Model):
     videos = relationship("Video", back_populates="user")
     comments = relationship("Comment", back_populates="user")
     username = db.Column(db.String(20), unique=True)
-    hashed_key = db.Column(db.String(80))
+    key = db.Column(db.String(80))
 
     def __init__(self, username, key):
         self.username = username
-        self.hashed_key = generate_password_hash(
-            key, method="pbkdf2:sha256", salt_length=8)
+        self.key = key
 
     def update_from_args(self, args):
         """

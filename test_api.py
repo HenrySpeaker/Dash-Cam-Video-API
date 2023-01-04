@@ -14,6 +14,7 @@ TEST_DESCRIPTION = "test description"
 TEST_COMMENT = "test comment body"
 NEW_TEST_COMMENT = "new test comment body"
 current_api_key = ""
+second_current_api_key = ""
 
 
 def convert_response_data(response):
@@ -24,6 +25,12 @@ def set_current_api_key(response):
     global current_api_key
     data = convert_response_data(response)
     current_api_key = data.get("key", "")
+
+
+def set_second_current_api_key(response):
+    global second_current_api_key
+    data = convert_response_data(response)
+    second_current_api_key = data.get("key", "")
 
 
 @pytest.fixture()
@@ -45,7 +52,7 @@ def client(app):
 @pytest.fixture()
 def client_with_user(client):
     new_user = {"username": TEST_USERNAME}
-    response = client.post("/Users/", data=new_user)
+    response = client.post("/Users/", json=new_user)
     set_current_api_key(response)
     return client
 
@@ -53,21 +60,22 @@ def client_with_user(client):
 @pytest.fixture()
 def client_with_two_users(client_with_user):
     second_user = {"username": NEW_TEST_USERNAME}
-    response = client_with_user.post("/Users/", data=second_user)
+    response = client_with_user.post("/Users/", json=second_user)
+    set_second_current_api_key(response)
     return client_with_user
 
 
 @pytest.fixture()
 def client_with_video(client_with_user):
     video = {"url": TEST_URL, "user_id": 1}
-    response = client_with_user.post('/Videos/', data=video)
+    response = client_with_user.post('/Videos/', json=video)
     return client_with_user
 
 
 @pytest.fixture()
 def client_with_comment(client_with_video):
     comment = {"user_id": 1, "video_id": 1, "body": TEST_COMMENT}
-    response = client_with_video.post('/Comments/', data=comment)
+    response = client_with_video.post('/Comments/', json=comment)
     return client_with_video
 
 
@@ -96,7 +104,7 @@ def test_wrong_user_get(client_with_user):
 
 def test_add_user(client):
     new_user = {"username": TEST_USERNAME}
-    response = client.post("/Users/", data=new_user)
+    response = client.post("/Users/", json=new_user)
     assert response.status == "200 OK"
     data = convert_response_data(response)
     assert len(data) == 3
@@ -110,7 +118,7 @@ def test_add_user(client):
 
 def test_add_duplicate_user(client_with_user):
     user = {"username": TEST_USERNAME}
-    response = client_with_user.post("/Users/", data=user)
+    response = client_with_user.post("/Users/", json=user)
     assert response.status == "400 BAD REQUEST"
 
 
@@ -128,6 +136,42 @@ def test_get_nonexistent_user_by_id(client_with_user):
     assert response.status == "404 NOT FOUND"
 
 
+def test_put_no_api_key(client_with_user):
+    user_data = {"username": NEW_TEST_USERNAME}
+    response = client_with_user.put('/Users/1', json=user_data)
+    assert response.status_code == 400
+
+
+def test_patch_no_api_key(client_with_user):
+    user_data = {"username": NEW_TEST_USERNAME}
+    response = client_with_user.patch('/Users/1', json=user_data)
+    assert response.status_code == 400
+
+
+def test_delete_no_api_key(client_with_user):
+    user_data = {"username": NEW_TEST_USERNAME}
+    response = client_with_user.delete('/Users/1', json=user_data)
+    assert response.status_code == 400
+
+
+def test_put_empty_api_key(client_with_user):
+    user_data = {"username": NEW_TEST_USERNAME, "api_key": ""}
+    response = client_with_user.put('/Users/1', json=user_data)
+    assert response.status_code == 400
+
+
+def test_patch_empty_api_key(client_with_user):
+    user_data = {"username": NEW_TEST_USERNAME, "api_key": ""}
+    response = client_with_user.patch('/Users/1', json=user_data)
+    assert response.status_code == 400
+
+
+def test_delete_empty_api_key(client_with_user):
+    user_data = {"username": NEW_TEST_USERNAME, "api_key": ""}
+    response = client_with_user.delete('/Users/1', json=user_data)
+    assert response.status_code == 400
+
+
 def test_put_new_username(client_with_user):
     new_user_data = {"username": NEW_TEST_USERNAME, "api_key": current_api_key}
     response = client_with_user.put('/Users/1', json=new_user_data)
@@ -139,14 +183,14 @@ def test_put_new_username(client_with_user):
 
 
 def test_wrong_client_put(client_with_two_users):
-    wrong_user = {"username": NEW_TEST_USERNAME}
-    response = client_with_two_users.put('/Users/1', data=wrong_user)
+    wrong_user = {"username": NEW_TEST_USERNAME, "api_key": current_api_key}
+    response = client_with_two_users.put('/Users/1', json=wrong_user)
     assert response.status == "400 BAD REQUEST"
 
 
 def test_patch_new_username(client_with_user):
-    new_user_data = {"username": NEW_TEST_USERNAME}
-    response = client_with_user.patch('/Users/1', data=new_user_data)
+    new_user_data = {"username": NEW_TEST_USERNAME, "api_key": current_api_key}
+    response = client_with_user.patch('/Users/1', json=new_user_data)
     assert response.status == "200 OK"
     data = convert_response_data(response)
     assert len(data) == 2
@@ -155,13 +199,14 @@ def test_patch_new_username(client_with_user):
 
 
 def test_wrong_client_patch(client_with_two_users):
-    wrong_user = {"username": NEW_TEST_USERNAME}
-    response = client_with_two_users.patch('/Users/1', data=wrong_user)
+    wrong_user = {"username": NEW_TEST_USERNAME, "api_key": current_api_key}
+    response = client_with_two_users.patch('/Users/1', json=wrong_user)
     assert response.status == "400 BAD REQUEST"
 
 
 def test_user_delete(client_with_user):
-    del_response = client_with_user.delete('/Users/1')
+    user_data = {"api_key": current_api_key}
+    del_response = client_with_user.delete('/Users/1', json=user_data)
     assert del_response.status == "200 OK"
     get_response = client_with_user.get('/Users/')
     data = convert_response_data(get_response)
@@ -169,7 +214,8 @@ def test_user_delete(client_with_user):
 
 
 def test_wrong_user_delete(client_with_user):
-    del_response = client_with_user.delete('/Users/2')
+    user_data = {"api_key": current_api_key}
+    del_response = client_with_user.delete('/Users/2', json=user_data)
     assert del_response.status == "404 NOT FOUND"
     get_response = client_with_user.get('/Users/')
     data = convert_response_data(get_response)
@@ -185,7 +231,7 @@ def test_get_empty_videos(client):
 
 def test_add_video(client_with_user):
     video = {"url": TEST_URL, "user_id": 1}
-    response = client_with_user.post('/Videos/', data=video)
+    response = client_with_user.post('/Videos/', json=video)
     assert response.status_code == 200
     get_response = client_with_user.get('/Videos/')
     get_response_data = convert_response_data(get_response)
@@ -212,13 +258,13 @@ def test_wrong_video_get(client_with_video):
 
 def test_add_duplicate_video(client_with_video):
     video_data = {"url": TEST_URL}
-    response = client_with_video.post('/Videos/', data=video_data)
+    response = client_with_video.post('/Videos/', json=video_data)
     assert response.status_code == 400
 
 
 def test_add_invalid_url(client_with_video):
     video_data = {"url": "www.wrong_url.com"}
-    response = client_with_video.post('/Videos/', data=video_data)
+    response = client_with_video.post('/Videos/', json=video_data)
     assert response.status_code == 400
 
 
@@ -236,8 +282,9 @@ def test_get_nonexistent_user_by_id(client_with_video):
 
 
 def test_put_new_url(client_with_video):
-    new_video_data = {"url": NEW_TEST_URL, "user_id": 1}
-    response = client_with_video.put('/Videos/1', data=new_video_data)
+    new_video_data = {"url": NEW_TEST_URL,
+                      "user_id": 1, "api_key": current_api_key}
+    response = client_with_video.put('/Videos/1', json=new_video_data)
     assert response.status_code == 200
     data = convert_response_data(response)
     assert data["url"] == NEW_TEST_URL
@@ -251,7 +298,7 @@ def test_get_no_video_with_date(client_with_video):
 
 def test_get_video_with_date(client_with_user):
     video_data = {"url": TEST_URL, "user_id": 1, "date": TEST_DATE}
-    post_response = client_with_user.post('/Videos/', data=video_data)
+    post_response = client_with_user.post('/Videos/', json=video_data)
     get_data = {"date": TEST_DATE}
     get_response = client_with_user.get('/Videos/', query_string=get_data)
     get_response_data = convert_response_data(get_response)
@@ -262,21 +309,21 @@ def test_get_video_with_date(client_with_user):
 
 def test_post_invalid_youtube_url(client_with_user):
     video_data = {"url": INVALID_YT_URL, "user_id": 1}
-    response = client_with_user.post('/Videos/', data=video_data)
+    response = client_with_user.post('/Videos/', json=video_data)
     assert response.status_code == 400
 
 
 def test_put_invalid_youtube_url(client_with_video):
     video_data = {"url": INVALID_YT_URL, "user_id": 1}
-    response = client_with_video.put('/Videos/1', data=video_data)
+    response = client_with_video.put('/Videos/1', json=video_data)
     assert response.status_code == 400
 
 
 def test_patch_video(client_with_video):
     video_data = {"url": NEW_TEST_URL, "user_id": 1,
-                  "date": TEST_DATE, "description": TEST_DESCRIPTION}
+                  "date": TEST_DATE, "description": TEST_DESCRIPTION, "api_key": current_api_key}
 
-    response = client_with_video.patch('/Videos/1', data=video_data)
+    response = client_with_video.patch('/Videos/1', json=video_data)
     assert response.status_code == 200
     data = convert_response_data(response)
     assert data["url"] == NEW_TEST_URL
@@ -286,14 +333,15 @@ def test_patch_video(client_with_video):
 
 def test_patch_invalid_youtube_url(client_with_video):
     video_data = {"url": INVALID_YT_URL, "user_id": 1,
-                  "date": TEST_DATE, "description": TEST_DESCRIPTION}
+                  "date": TEST_DATE, "description": TEST_DESCRIPTION, "api_key": current_api_key}
 
-    response = client_with_video.patch('/Videos/1', data=video_data)
+    response = client_with_video.patch('/Videos/1', json=video_data)
     assert response.status_code == 400
 
 
 def test_delete_video(client_with_video):
-    response = client_with_video.delete('/Videos/1')
+    video_data = {"api_key": current_api_key}
+    response = client_with_video.delete('/Videos/1', json=video_data)
     assert response.status_code == 200
     video_list_response = client_with_video.get('/Videos/')
     video_list_data = convert_response_data(video_list_response)
@@ -309,7 +357,7 @@ def test_get_empty_comment(client):
 
 def test_add_comment(client_with_video):
     comment = {"user_id": 1, "video_id": 1, "body": TEST_COMMENT}
-    response = client_with_video.post('/Comments/', data=comment)
+    response = client_with_video.post('/Comments/', json=comment)
     assert response.status_code == 200
     get_response = client_with_video.get('/Comments/')
     get_data = convert_response_data(get_response)
@@ -342,8 +390,9 @@ def test_get_comment_by_id(client_with_comment):
 
 
 def test_put_comment(client_with_comment):
-    new_comment = {"user_id": 1, "video_id": 1, "body": NEW_TEST_COMMENT}
-    response = client_with_comment.put('/Comments/1', data=new_comment)
+    new_comment = {"user_id": 1, "video_id": 1,
+                   "body": NEW_TEST_COMMENT, "api_key": current_api_key}
+    response = client_with_comment.put('/Comments/1', json=new_comment)
     assert response.status_code == 200
     get_response = client_with_comment.get('/Comments/1')
     get_data = convert_response_data(get_response)
@@ -351,8 +400,9 @@ def test_put_comment(client_with_comment):
 
 
 def test_patch_comment(client_with_comment):
-    new_comment = {"user_id": 1, "video_id": 1, "body": NEW_TEST_COMMENT}
-    response = client_with_comment.patch('/Comments/1', data=new_comment)
+    new_comment = {"user_id": 1, "video_id": 1,
+                   "body": NEW_TEST_COMMENT, "api_key": current_api_key}
+    response = client_with_comment.patch('/Comments/1', json=new_comment)
     assert response.status_code == 200
     get_response = client_with_comment.get('/Comments/1')
     get_data = convert_response_data(get_response)
@@ -360,7 +410,8 @@ def test_patch_comment(client_with_comment):
 
 
 def test_delete_comment(client_with_comment):
-    response = client_with_comment.delete('/Comments/1')
+    comment_data = {"api_key": current_api_key}
+    response = client_with_comment.delete('/Comments/1', json=comment_data)
     assert response.status_code == 200
     get_response = client_with_comment.get('/Comments/')
     get_data = convert_response_data(get_response)

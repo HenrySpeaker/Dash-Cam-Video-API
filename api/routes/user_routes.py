@@ -12,6 +12,9 @@ post_parser = get_parser.copy()
 post_parser.replace_argument("username", required=True)
 post_parser.add_argument("api_key")
 
+delete_parser = post_parser.copy()
+delete_parser.remove_argument("username")
+
 user_model = api.model("User", {
     "username": fields.String,
     "id": fields.Integer
@@ -71,7 +74,7 @@ class UserList(Resource):
 
 @user_ns.route("/<int:id>")
 class Users(Resource):
-    # method_decorators = [require_api_key]
+    method_decorators = [require_api_key]
 
     @user_ns.marshal_with(user_model)
     def get(self, id):
@@ -116,6 +119,7 @@ class Users(Resource):
 
         return user.to_dict()
 
+    @user_ns.expect(delete_parser)
     def delete(self, id):
         """
         Deletes user with ID provided from database and returns JSON object with a message indicating it's been deleted and the ID of the user.
