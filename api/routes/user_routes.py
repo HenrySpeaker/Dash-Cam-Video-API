@@ -1,7 +1,7 @@
 from ..models.users import User
 from .. import user_ns
 from flask_restx import Resource, fields, reqparse
-from .. import db, api
+from .. import db, api, limiter
 import uuid
 from ..utils.apikey import require_api_key
 
@@ -29,6 +29,7 @@ new_user_model = api.inherit('New User', user_model, {
 class UserList(Resource):
     @user_ns.marshal_list_with(user_model)
     @user_ns.expect(get_parser)
+    @limiter.exempt
     def get(self):
         """
         First checks parser for any username provided and returns that user's data (if it exists) as JSON in a list.
@@ -51,6 +52,7 @@ class UserList(Resource):
 
     @user_ns.marshal_with(new_user_model)
     @user_ns.expect(post_parser)
+    @limiter.exempt
     def post(self):
         """
         Confirms that no user with that username already exists, and if so, creates a new user an returns their data as JSON object.
@@ -77,6 +79,7 @@ class Users(Resource):
     method_decorators = [require_api_key]
 
     @user_ns.marshal_with(user_model)
+    @limiter.exempt
     def get(self, id):
         """
         Gets user by ID, otherwise returns 404.

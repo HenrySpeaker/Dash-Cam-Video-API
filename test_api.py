@@ -416,3 +416,10 @@ def test_delete_comment(client_with_comment):
     get_response = client_with_comment.get('/Comments/')
     get_data = convert_response_data(get_response)
     assert len(get_data) == 0
+
+
+def test_api_rate_limit(client_with_user):
+    user_data = {"api_key": current_api_key}
+    for _ in range(1000):
+        response = client_with_user.get("/Users/", json=user_data)
+    assert response.status_code == 429
