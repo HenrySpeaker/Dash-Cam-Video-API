@@ -4,7 +4,7 @@ from ..models.users import User
 from .. import comment_ns
 from flask_restx import Resource, reqparse, fields
 from .. import db, api
-from ..utils.apikey import require_api_key
+from ..utils.APIKEY.require_key import require_api_key
 
 
 get_parser = reqparse.RequestParser()

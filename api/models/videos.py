@@ -11,6 +11,8 @@ class Video(db.Model):
     url = db.Column(db.String(2000), unique=True, nullable=False)
     date = db.Column(db.Date, nullable=True)
     description = db.Column(db.Text)
+    city_id = db.Column(db.Integer, db.ForeignKey("city.id"))
+    city = relationship("City", back_populates="videos")
 
     def update_from_args(self, args):
         """

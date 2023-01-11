@@ -1,10 +1,11 @@
 from ..models.videos import Video
 from ..models.users import User
+from ..models.cities import City
 from .. import video_ns
 from flask_restx import Resource, fields, reqparse, inputs
 from .. import db, api
 from ..utils.url import verify_youtube_url
-from ..utils.apikey import require_api_key
+from ..utils.APIKEY.require_key import require_api_key
 
 
 get_parser = reqparse.RequestParser()

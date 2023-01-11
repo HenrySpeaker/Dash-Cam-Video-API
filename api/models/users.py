@@ -2,7 +2,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.exc import NoResultFound
 from ..models.videos import Video
 from .. import db
-from werkzeug.security import generate_password_hash
 
 
 class User(db.Model):

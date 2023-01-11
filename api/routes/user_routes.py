@@ -3,7 +3,7 @@ from .. import user_ns
 from flask_restx import Resource, fields, reqparse
 from .. import db, api, limiter
 import uuid
-from ..utils.apikey import require_api_key
+from ..utils.APIKEY.require_key import require_api_key
 
 get_parser = reqparse.RequestParser()
 get_parser.add_argument("username", required=False)

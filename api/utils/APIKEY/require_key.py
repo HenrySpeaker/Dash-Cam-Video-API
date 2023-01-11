@@ -1,8 +1,7 @@
-from ..models.users import User
+from ...models.users import User
 import functools
-from werkzeug.security import check_password_hash
 from flask import request
-from .. import db
+from ... import db
 
 
 def require_api_key(func):
