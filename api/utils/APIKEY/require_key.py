@@ -11,7 +11,6 @@ def require_api_key(func):
             return func(*args, **kwargs)
         elif request.method != "GET" and request.json:
             possible_key = request.json.get("api_key")
-            # print("possible key is " + str(possible_key))
             if not possible_key:
                 return {"message": "No API key provided"}, 400
             users = db.session.query(User)

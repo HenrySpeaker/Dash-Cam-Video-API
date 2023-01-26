@@ -11,7 +11,8 @@ class User(db.Model):
     username = db.Column(db.String(20), unique=True)
     key = db.Column(db.String(80))
 
-    def __init__(self, username, key):
+    def __init__(self, username, key, **kwargs):
+        super().__init__(**kwargs)
         self.username = username
         self.key = key
 
